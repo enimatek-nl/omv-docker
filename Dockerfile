@@ -1,31 +1,19 @@
-FROM debian:bullseye
-
-ENV DEBIAN_FRONTEND noninteractive
-ENV LANG C.UTF-8
-ENV APT_LISTCHANGES_FRONTEND non
+FROM debian:bullseye-slim
 
 RUN apt-get update
-RUN apt-get install --yes gnupg wget
-RUN wget -O "/etc/apt/trusted.gpg.d/openmediavault-archive-keyring.asc" https://packages.openmediavault.org/public/archive.key
-RUN apt-key add "/etc/apt/trusted.gpg.d/openmediavault-archive-keyring.asc"
+RUN apt-get install nginx nginx-extras bash samba tzdata -y
 
-RUN echo "deb https://packages.openmediavault.org/public shaitan main" >> /etc/apt/sources.list.d/openmediavault.list
+RUN groupadd --gid 1000 smb
+RUN useradd -rm -d /tmp -s /sbin/nologin --gid smb --uid 1000 smbuser
 
-RUN apt-get update
-RUN apt-get --yes --auto-remove --show-upgraded \
-    --allow-downgrades --allow-change-held-packages \
-    --no-install-recommends \
-    --option DPkg::Options::="--force-confdef" \
-    --option DPkg::Options::="--force-confold" \
-    install openmediavault-keyring openmediavault
+RUN mkdir -p /usr/local/samba/var/cores
+RUN chmod -R 0700 /usr/local/samba/var/cores
 
-RUN omv-salt stage run all || true
+COPY entrypoint.sh /usr/bin/entrypoint.sh
+RUN chmod u+x /usr/bin/entrypoint.sh
 
-COPY omv-run.sh /usr/sbin/omv-run.sh
-RUN chmod +x /usr/sbin/omv-run.sh
+EXPOSE 137/udp 138/udp 139 445 80
 
-EXPOSE 80
+HEALTHCHECK --interval=60s --timeout=15s CMD smbclient -L \\localhost -U % -m SMB3
 
-VOLUME /data
-
-ENTRYPOINT /usr/sbin/omv-run.sh
+ENTRYPOINT ["/usr/bin/entrypoint.sh"]
