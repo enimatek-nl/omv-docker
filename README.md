@@ -1,4 +1,8 @@
 # share-docker
+Dockerfile for sharing drives over SAMBA and WebDAV easily with access control shared between the two.
+
+## Tech
+Uses smbd and nginx with the dav-extension and pam-extension.
 
 ## Commands
 The entrypoint accepts the following input:
