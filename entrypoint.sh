@@ -53,10 +53,14 @@ while getopts "u:s:" opt; do
     case $opt in
         u)
             IFS=: read username password guid <<<"$OPTARG"
-            addgroup --gid "$guid" "$username"
-            adduser --system --shell /sbin/nologin --gid "$guid" --uid "$guid" "$username"
-            echo "$username:$password" | chpasswd
-            printf "$password\n$password\n" | smbpasswd -a -s "$username"
+            if [[ $(finger "$username" 2>&1) =~ "no such user" ]] ; then
+                addgroup --gid "$guid" "$username"
+                adduser --system --shell /sbin/nologin --gid "$guid" --uid "$guid" "$username"
+                echo "$username:$password" | chpasswd
+                printf "$password\n$password\n" | smbpasswd -a -s "$username"
+            else
+                echo "$username already exists; skipping."
+            fi            
             ;;
         s)
             IFS=: read sharename sharepath readwrite users <<<"$OPTARG"
@@ -121,7 +125,7 @@ EOT
                 location $sharepath {
                     root /;
                     dav_methods PUT DELETE MKCOL COPY MOVE;
-                    dav_ext_methods PROPFIND OPTIONS;
+                    dav_ext_methods PROPFIND OPTIONS LOCK UNLOCK;
                     dav_access user:rw group:rw all:rw;
 
                     client_max_body_size 0;

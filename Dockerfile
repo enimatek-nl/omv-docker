@@ -1,7 +1,7 @@
 FROM debian:bullseye-slim
 
 RUN apt-get update
-RUN apt-get install nginx nginx-extras bash samba tzdata -y
+RUN apt-get install samba smbclient nginx nginx-extras bash tzdata -y
 
 RUN groupadd --gid 1000 smb
 RUN useradd -rm -d /tmp -s /sbin/nologin --gid smb --uid 1000 smbuser
